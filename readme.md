@@ -82,3 +82,56 @@ Via: ICAP/1.0 ip-172-31-28-168.eu-central-1.compute.internal (C-ICAP/0.4.4 Squid
 test
 0
 ```
+
+# Symantec
+
+The capital "C" in the close in the above was not accepted by symantec, it was a typo anyway so it has been fixed, this is the response we get from symantec for the virus one:
+
+```
+ICAP/1.0 201 Created
+ISTag: “58183FA85B3F6D62133B83C4BC957EBA”
+Date: Tue Sep 15 12:27:14 2020 GMT
+Service: Symantec Protection Engine/7.9.1.12
+Service-ID: SYMCSCANREQ-AV-URL
+X-Violations-Found: 1 svwiscd1 EICAR Test String 11101 0
+X-Outer-Container-Is-Mime: 0
+Encapsulated: res-hdr=0, res-body=110
+
+HTTP/1.1 403 Forbidden.
+Connection: close
+Content-Length: 257
+Pragma: no-cache
+Content-Type: text/html
+
+101
+<html><title>Content Blocked Notice</title>The content you just requested contains EICAR Test String and was blocked by the Symantec Protection Engine based on local administrator settings.  Contact your local administrator for further information.</html>
+```
+
+```
+REQMOD icap://svwiscd1:1344/SYMCScanReq-AV ICAP/1.0
+Encapsulated: req-hdr=0, req-body=102
+Host: profile-syst.dats24.be
+Connection: Close
+
+POST http://localhost HTTP/1.1
+Transfer-Encoding: chunked
+Content-Type: application/octet-stream
+
+43
+X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H
+0
+```
+
+Another example of the header:
+
+```
+ X-Violations-Found: 2
+        test.zip/dir1/eicar.com
+        EICAR Test String
+        11101
+        2
+        test.zip/dir2/eicar.com
+        EICAR Test String
+        11101
+        2
+```

@@ -1,5 +1,7 @@
 package be.nabu.libs.http.icap;
 
+import java.io.IOException;
+
 import be.nabu.libs.http.api.HTTPRequest;
 import be.nabu.libs.http.core.HTTPFormatter;
 import be.nabu.utils.io.IOUtils;
@@ -50,4 +52,8 @@ public class ICAPRequestContentPart extends PlainMimePart implements ContentPart
 		}
 	}
 
+	@Override
+	public void close() throws IOException {
+		request.getContent().close();
+	}
 }

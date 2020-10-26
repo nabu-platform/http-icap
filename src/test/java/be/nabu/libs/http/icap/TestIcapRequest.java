@@ -21,36 +21,51 @@ import be.nabu.utils.mime.impl.PlainMimeContentPart;
 import junit.framework.TestCase;
 
 public class TestIcapRequest extends TestCase {
+	
+	public void testViolationsHeader() {
+		VirusInfection infection = ICAPUtils.parseViolationsHeader(new MimeHeader("X-Violations-Found", "1 svwiscd1 EICAR Test String 11101 0"));
+		System.out.println(infection.getThreat());
+	}
+	
 	@SuppressWarnings("resource")
 	public void testRequest() throws IOException, FormatException, ParseException {
-		byte [] test = "test".getBytes();
-		
-		// the sneaky stuff!
-		test = "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*".getBytes();
-		DefaultHTTPRequest request = new DefaultHTTPRequest("POST", "https://www.google.com", new PlainMimeContentPart(null, IOUtils.wrap(test, true)));
-		
-//		HTTPRequest wrap = ICAPUtils.wrap("REQMOD", "172.16.11.19:1344", "/SYMCScanReq-AV", request);
-//		HTTPRequest wrap = ICAPUtils.wrap("REQMOD", "neo-dev.cubitec.be:1344", "/REQMOD", request);
-		HTTPRequest wrap = ICAPUtils.wrap("REQMOD", "neo-dev.cubitec.be:1344", "/squidclamav", request);
-		
-		wrap.getContent().setHeader(new MimeHeader("Connection", "Close"));
-		
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		new HTTPFormatter().formatRequest(wrap, IOUtils.wrap(output));
-		System.out.println(new String(output.toByteArray()));
-		
-		PlainConnectionHandler handler = new PlainConnectionHandler(null, 30000, 30000);
-		Socket connect = handler.connect("localhost", 1344, false);
-		InputStream inputStream = connect.getInputStream();
-		OutputStream outputStream = connect.getOutputStream();
-		IOUtils.copyBytes(IOUtils.wrap(output.toByteArray(), true), IOUtils.wrap(outputStream));
-		byte[] bytes = IOUtils.toBytes(IOUtils.wrap(inputStream));
-		outputStream.close();
-		System.out.println(new String(bytes));
-		connect.close();
-		
-		HTTPResponse parseResponse = new HTTPParser(new DefaultDynamicResourceProvider(), false).parseResponse(IOUtils.wrap(bytes, true), "ICAP");
-		System.out.println("parsed: " + ICAPUtils.inspect(parseResponse));
+		try {
+			byte [] test = "test".getBytes();
+			
+			// the sneaky stuff!
+			test = "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*".getBytes();
+			// base 64 encoded sneaky stuff!
+	//		test = "WDVPIVAlQEFQWzRcXFBaWDU0KFBeKTdDQyk3fSRFSUNBUi1TVEFOREFSRC1BTlRJVklSVVMtVEVTVC1GSUxFISRIK0gq".getBytes();
+			
+			DefaultHTTPRequest request = new DefaultHTTPRequest("POST", "https://www.google.com", new PlainMimeContentPart(null, IOUtils.wrap(test, true)));
+			request.getContent().setHeader(new MimeHeader("Transfer-Encoding", "chunked"));
+			
+	//		HTTPRequest wrap = ICAPUtils.wrap("REQMOD", "172.16.11.19:1344", "/SYMCScanReq-AV", request);
+	//		HTTPRequest wrap = ICAPUtils.wrap("REQMOD", "localhost:1344", "/REQMOD", request);
+			HTTPRequest wrap = ICAPUtils.wrap("REQMOD", "localhost:1344", "/squidclamav", request);
+			
+			wrap.getContent().setHeader(new MimeHeader("Connection", "Close"));
+			
+			ByteArrayOutputStream output = new ByteArrayOutputStream();
+			new HTTPFormatter().formatRequest(wrap, IOUtils.wrap(output));
+			System.out.println(new String(output.toByteArray()));
+			
+			PlainConnectionHandler handler = new PlainConnectionHandler(null, 30000, 30000);
+			Socket connect = handler.connect("localhost", 1344, false);
+			InputStream inputStream = connect.getInputStream();
+			OutputStream outputStream = connect.getOutputStream();
+			IOUtils.copyBytes(IOUtils.wrap(output.toByteArray(), true), IOUtils.wrap(outputStream));
+			byte[] bytes = IOUtils.toBytes(IOUtils.wrap(inputStream));
+			outputStream.close();
+			System.out.println(new String(bytes));
+			connect.close();
+			
+			HTTPResponse parseResponse = new HTTPParser(new DefaultDynamicResourceProvider(), false).parseResponse(IOUtils.wrap(bytes, true), "ICAP");
+			System.out.println("parsed: " + ICAPUtils.inspect(parseResponse));
+		}
+		catch (Exception e) {
+			// ignore :(
+		}		
 	}
 	
 	public void testResponse() {
