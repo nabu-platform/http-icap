@@ -13,6 +13,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 
+import be.nabu.libs.http.HTTPException;
+import be.nabu.libs.http.HTTPInterceptorManager;
 import be.nabu.libs.http.api.HTTPRequest;
 import be.nabu.libs.http.api.HTTPResponse;
 import be.nabu.libs.http.core.DefaultDynamicResourceProvider;
@@ -21,6 +23,7 @@ import be.nabu.libs.http.core.HTTPFormatter;
 import be.nabu.libs.http.core.HTTPParser;
 import be.nabu.utils.io.IOUtils;
 import be.nabu.utils.mime.api.Header;
+import be.nabu.utils.mime.api.ModifiableContentPart;
 import be.nabu.utils.mime.impl.MimeHeader;
 import be.nabu.utils.mime.impl.MimeUtils;
 import be.nabu.utils.mime.impl.PlainMimeContentPart;
@@ -75,6 +78,9 @@ public class ICAPUtils {
 			
 			InputStream inputStream = socket.getInputStream();
 			OutputStream outputStream = socket.getOutputStream();
+			
+			icap = HTTPInterceptorManager.intercept(icap);
+			
 			new HTTPFormatter().formatRequest(icap, IOUtils.wrap(outputStream));
 			// make sure all the data is flushed!
 			outputStream.flush();
@@ -82,7 +88,18 @@ public class ICAPUtils {
 			HTTPResponse response = new HTTPParser(new DefaultDynamicResourceProvider(), false).parseResponse(IOUtils.wrap(inputStream), "ICAP");
 			outputStream.close();
 			socket.close();
+			
+			// because we back it with a default dynamic resource, we can definitely re-read it
+			if (response.getContent() instanceof ModifiableContentPart) {
+				((ModifiableContentPart) response.getContent()).setReopenable(true);
+			}
+			
+			response = HTTPInterceptorManager.intercept(response);
+			
 			return inspect(response);
+		}
+		catch (RuntimeException e) {
+			throw e;
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
@@ -98,6 +115,11 @@ public class ICAPUtils {
 	
 	// check out https://tools.ietf.org/html/draft-stecher-icap-subid-00#page-9
 	public static VirusInfection inspect(HTTPResponse icapResponse) {
+		
+		if (icapResponse.getCode() >= 400) { 
+			throw new HTTPException(icapResponse.getCode(), icapResponse.getMessage());
+		}
+		
 		Header encapsulated = MimeUtils.getHeader("Encapsulated", icapResponse.getContent().getHeaders());
 		if (encapsulated == null) {
 			throw new IllegalArgumentException("Could not find the 'Encapsulated' header, the response is likely not an ICAP response");

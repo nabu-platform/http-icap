@@ -56,4 +56,11 @@ public class ICAPRequestContentPart extends PlainMimePart implements ContentPart
 	public void close() throws IOException {
 		request.getContent().close();
 	}
+
+	@Override
+	public boolean isReopenable() {
+		ModifiablePart content = request.getContent();
+		return content instanceof ContentPart ? ((ContentPart) content).isReopenable() : false;
+	}
+	
 }
