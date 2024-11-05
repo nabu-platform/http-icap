@@ -1,5 +1,6 @@
 # ClamAV
 
+https://secure.eicar.org/eicar.com
 An example when we upload the EICAR test string:
 
 ```
